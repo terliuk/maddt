@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+
+<div class="shadow_box">
+
+<ul style="list-style : none">
+<li>    {{copied_files             }} 
+<li>    {{corrupt_files            }} 
+<li>    {{elapsed_time             }} 
+<li>    {{elapsed_copy_time        }} 
+<li>    {{datavolume               }} 
+<li>    {{elapsed_farm_waiting_time}}
+<li>    {{transfertime             }} 
+</ul>
+
+
+</div>
+{% endblock %}
+

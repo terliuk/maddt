@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+{# index of the main page #}
+
+<html>
+<head>
+ 
+    <title>
+    {% block title %}
+       maddt    
+    {% endblock %}
+    </title>
+
+    <!-- jquery javascript lib -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+
+    <!-- bootstrap lib -->
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+
+    <!-- google fonts -->
+    <link href='http://fonts.googleapis.com/css?family=Oswald:400,300' rel='stylesheet' type='text/css' />
+    <link href='http://fonts.googleapis.com/css?family=Abel|Satisfy' rel='stylesheet' type='text/css' />
+    <link href='http://fonts.googleapis.com/css?family=Cinzel+Decorative:bold' rel='stylesheet' type='text/css'>  
+
+
+    <!-- Chart.js -->
+    <script type="text/javascript" src="{{STATIC_URL}}javascript/Chart.js-master/Chart.js">
+   
+    <!-- MADDT charts -->
+    <script type="text/javascript" src="{{STATIC_URL}}javascript/maddt/charts.js"></script>
+
+    <!-- stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{STATIC_URL}}css/base.css">
+
+
+</head>
+
+
+    <body>
+    <!-- layout scheme
+
+    FIXED NAVBAR
+    .............
+    |  content  |
+    .............
+      footer
+
+    content is organized in different "boxes"
+    design similar like g+ or twitter
+
+    -->
+
+    {% include "bootstrap_nav.html" %}
+
+
+    <!-- <div id="main"> -->
+    {% block content %} {% endblock %}
+    <!-- </div>  -->
+
+    {% block footer %} 
+    <div id="footer" style="float : right; right : 5px;">
+    {% include "footer.html" %}
+    </div>
+    {% endblock %}
+    </body>
+
+<html>

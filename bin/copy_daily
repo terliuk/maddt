@@ -1,0 +1,25 @@
+#! /bin/zsh
+
+source $HOME/.zshrc
+source $HOME/.zshenv
+
+source $HOME/scratch/python_env/bin/activate
+
+MADDT=$HOME/scratch/ic86_transfer/maddt/
+
+lockfile=$MADDT/tmp/daily.lock
+
+if ( set -o noclobber; echo "locked" > "$lockfile") 2> /dev/null; then
+  trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
+  echo "Locking succeeded" >&2
+  myproxy-logon -n -m icecube
+  python $MADDT/bin/copy_client.py -j 1 
+  rm -f "$lockfile"
+  voms-proxy-destroy
+else
+  echo "copy_daily instance is already running ..." >&2
+  exit 1
+fi
+
+
+

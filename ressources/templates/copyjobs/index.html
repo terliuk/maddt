@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="shadow_box left_column_text" style="margin-top : 5em; float : left;margin-lef : 2em">
+
+
+    <h5>copyjobs</h5>
+            <table cellpadding="10" cellspacing="10" border="0" class="pretty" id="copyjobtable">
+            <thead>
+                <tr>
+                    <th width="auto">Transfertime</th>
+                    <th width="auto">Copied Files</th>
+                    <th width="auto">Corrupt Files</th>
+                    <th width="auto">Elapsed Time</th>
+                    <th width="auto">Elapsed Copy Time</th>
+                    <th width="auto">Datavolume</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            {% for job in object_list %}
+              <tr>
+                <td align="center">{{ job.transfertime }}</td>
+                <td align="center">{{ job.copied_files }}</td>
+                <td align="center">{{ job.corrupt_files }}</td>
+                <td align="center">{{ job.elapsed_time }}</td>
+                <td align="center">{{ job.elapsed_copy_time }}</td>
+                <td align="center">{{ job.datavolume|filesizeformat }}</td>
+              </tr>
+            {% endfor %}
+                
+                   
+            </tbody>
+        </table>
+
+</div>
+{% endblock %}

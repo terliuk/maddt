@@ -1,0 +1,30 @@
+
+<div class="navbar navbar-fixed-top navbar-inverse">  
+  <div class="navbar-inner">  
+    <div class="container">  
+    <ul class="nav">  
+  <li class="active">  
+    <a class="brand" href="http://icecube.wisc.edu/"><img src={{STATIC_URL}}gfx/icecube_desy_logo_no_bg.png width="125px"></a>  
+  </li>  
+  <li><a href="/copyjobs/">copyjobs</a></li>  
+  <li><a href="/copyjobs/statistics/">job statistics</a></li>  
+</ul>  
+<ul class="nav">  
+  <li class="dropdown">  
+    <a href="#"  
+          class="dropdown-toggle"  
+          data-toggle="dropdown">  
+          Madison DB 
+          <b class="caret"></b>  
+    </a>  
+    <ul class="dropdown-menu">  
+     <li><a href={% url "maddt.views.madison_database_overview" %}>Total copy</a></li>  
+    </ul>  
+  </li>  
+</ul>  
+<form class="navbar-search pull-left">  
+  <input type="text" class="search-query" placeholder="Search" style=" background-color: #FFFFFF; color: #AAAAAA"}>  
+</form>  
+    </div>  
+  </div>  
+</div>  
