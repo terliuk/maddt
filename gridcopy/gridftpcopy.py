@@ -16,7 +16,7 @@ from math import fsum
 from ConfigParser import ConfigParser
 
 
-def configure(configfile="/afs/ifh.de/user/s/stoessl/scratch/ic86_transfer/maddt/gridcopy/config.cfg"):
+def configure(configfile="gridcopy/config.cfg"):
     """
     Read the configfile
     """
@@ -89,12 +89,24 @@ def create_directories(files):
 
     dirs_to_create = set([pth for pth in map(get_local_path,files) if not os.path.exists(pth)])
     #dirs_to_create = set([get_local_path(f) for f in files if not os.path.exists(get_local_path(f))])
-    
-    map(os.makedirs,dirs_to_create)
-    map(write_access,dirs_to_create)
+    dirs_to_create_gsiftp = []
+    for onedir in dirs_to_create:
+        dirs_to_create_gsiftp.append(cfg.get('zeuthen_gsiftp','local_gsiftp_host') +onedir)
+    map(makedir_gridway, dirs_to_create_gsiftp)
+    #map(os.makedirs,dirs_to_create)
+    #map(write_access,dirs_to_create)
     if dirs_to_create:
         logging.info("Created directories %s" %(dirs_to_create.__repr__()))    
 
+def makedir_gridway(path):
+    """
+    Creates and changes read-write access to folder using uberftp
+    """
+    print "Creating folder ", path
+    uberftp_mkdir_command = ["uberftp", "-mkdir", path]
+    subprocess.call(uberftp_mkdir_command)
+    uberftp_chmod_command = ["uberftp", "-chmod", "-r", "775", path]
+    subprocess.call(uberftp_mkdir_command)
 
 def compare_checksums(localcsum,remotecsum):
     """
@@ -156,12 +168,17 @@ def get_files(cfg):
         #                           where r.dataset_id=1861 and u.dataset_id=1861
         #                           and u.transferstate="WAITING" """
         #                           #order by r.run_id""")
-
         # new query, phone call on 13.6.14 with Dipo, checking for validated runs due to a change
         # with the .gaps.txt files, which are now tared.
         #SELECT u.name,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=1874 and r.dataset_id=1874 and u.transferstate="WAITING" and g.validated limit 1000
-        sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=%s and r.dataset_id=%s and u.transferstate="WAITING" and g.validated limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit"))
-
+        
+        sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=%s and r.dataset_id=%s and u.transferstate="WAITING" and g.validated limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: original query
+        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=%s and r.dataset_id=%s and u.transferstate="WAITING" and LEFT(u.name,33)<>'Level2_IC86.2016_data_Run00127952' and LEFT(u.name,33)<>'Level2_IC86.2016_data_Run00127892' and g.validated limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: modified to ignore run 
+        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id, u.transfertime,u.md5sum  FROM i3filter.urlpath u JOIN i3filter.run r ON r.queue_id=u.queue_id JOIN i3filter.validateData g ON r.run_id=g.run_id WHERE u.dataset_id=%s AND r.dataset_id=%s AND u.transferstate="WAITING" AND g.validation_status LIMIT %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX " retransfer of 2012 data
+        
+        print sql
+        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u where u.dataset_id=1871 and transferstate='WAITING'"""
+        #sql = """SELECT * FROM i3filter.urlpath u where u.dataset_id=1871 and transferstate='WAITING'"""
         #sql = """select u.name, u.path, u.queue_id,u.urlpath_id, u.transfertime,u.md5sum from i3filter.urlpath u
         #                           where u.dataset_id=%s
         #                           and u.transferstate="WAITING" limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","limit"))
@@ -176,7 +193,8 @@ def get_files(cfg):
         OtherL2 = [b for b in dbInfo if b[4]%10 and b[0].find("PFFilt")<0 and b[0].find("GCD")<0]
         OtherPFFilt = [b for b in dbInfo if b[4]%10 and b[0].find("PFFilt")>=0]
         
-        #print len(dbInfo)
+        print len(dbInfo)
+        #print dbInfo
         #print len(burnSamplePFFilt)
         #print len(burnSampleL2)
         #print len(OtherPFFilt)
@@ -188,7 +206,6 @@ def get_files(cfg):
         if len(OtherL2): Files2Copy.extend(SortnGroup(OtherL2))
         if len(burnSamplePFFilt): Files2Copy.extend(SortnGroup(burnSamplePFFilt))
         if len(OtherPFFilt): Files2Copy.extend(SortnGroup(OtherPFFilt))
-        
         logging.info("Retrieved %i files to copy from database" %len(Files2Copy))
         #for f in Files2Copy: print f
         return Files2Copy
@@ -292,7 +309,8 @@ def sanitize_local_files(files):
     """
     check if files exists and have a size larger than 0
     """
-    
+    #for onef in files:
+    #    print "sanitize_local_files", get_local_filename(onef)
     def alive(f):
         name = get_local_filename(f)
         if os.path.exists(name):
@@ -313,16 +331,33 @@ def remove(files):
 
     filenames = map(get_local_filename,files)
     filenames = filter(os.path.exists,filenames)
+    print "Removing: ", filenames
     removed = []
     logging.debug("Will remove %i files" %len(filenames))
     if not filenames:
         return removed
     try:
-        removed   = map(os.remove,filenames)
+        for onefile in filenames:
+            rm_flag = remove_gridway(cfg.get('zeuthen_gsiftp','local_gsiftp_host') +onefile)
+            if rm_flag != 0: 
+                raise OSError
+            else: 
+                removed.append(rm_flag)
+        print removed
+        #removed   = map(os.remove,filenames)
     except OSError:
         logging.warning("Can not remove files %s !" %(filenames.__repr__()))
     logging.info("Removed %i files" %len(removed))
     return removed
+
+def remove_gridway(path):
+    """
+    Deletes the file via ftp
+    """
+    uberftp_rm_command = ["uberftp", "-rm", path]
+    print uberftp_rm_command
+    return subprocess.call(uberftp_rm_command)
+     
 
 #@transaction.commit_manually
 def local_csum_check(files,cfg,set_ignored=False):
