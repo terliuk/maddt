@@ -1,15 +1,15 @@
 #!/bin/zsh 
 
 #$ -S /bin/zsh
-##$ -l h_vmem=2000M
+#$ -l h_rss=2000M
 #$ -l h_cpu=00:29:59
 ##$ -cwd
 #$ -j y 
-#$ -o /dev/null
+#$ -o /lustre/fs19/group/icecube/terliuk/LOGS/copy_md5_jobs/
 
 #$ -P z_nuastr
 
-MADDT=$HOME/scratch/ic86_transfer/maddt
+MADDT=$HOME/scratch/venv/maddt
 sha1_storage_path=$1
 
 shift
