@@ -148,7 +148,7 @@ def get_files(cfg):
         
         def SortnGroup(list_):
             #list_.sort(key=lambda x: x[3])
-           
+
             #get unique entries using dict
             dList = {}
             for l in list_: dList[l[0]] = l[1:]
@@ -158,40 +158,63 @@ def get_files(cfg):
             sList = sorted(sList,key=lambda i: i[1][1])
             # then sort by run_id (may not be needed)
             sList = sorted(sList,key=lambda i: i[1][3])
-            
-            return sList
-        
-        cursor = connections["default"].cursor()    
-        
-        #sql = """select u.name, u.path, u.queue_id,u.urlpath_id, r.run_id,u.md5sum from i3filter.urlpath u
-        #                           join i3filter.run r on r.queue_id=u.queue_id
-        #                           where r.dataset_id=1861 and u.dataset_id=1861
-        #                           and u.transferstate="WAITING" """
-        #                           #order by r.run_id""")
-        # new query, phone call on 13.6.14 with Dipo, checking for validated runs due to a change
-        # with the .gaps.txt files, which are now tared.
-        #SELECT u.name,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=1874 and r.dataset_id=1874 and u.transferstate="WAITING" and g.validated limit 1000
-        
-        sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=%s and r.dataset_id=%s and u.transferstate="WAITING" and g.validated limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: original query
-        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u join i3filter.run r on r.queue_id=u.queue_id join i3filter.grl_snapshot_info g on r.run_id=g.run_id where u.dataset_id=%s and r.dataset_id=%s and u.transferstate="WAITING" and LEFT(u.name,33)<>'Level2_IC86.2016_data_Run00127952' and LEFT(u.name,33)<>'Level2_IC86.2016_data_Run00127892' and g.validated limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: modified to ignore run 
-        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id, u.transfertime,u.md5sum  FROM i3filter.urlpath u JOIN i3filter.run r ON r.queue_id=u.queue_id JOIN i3filter.validateData g ON r.run_id=g.run_id WHERE u.dataset_id=%s AND r.dataset_id=%s AND u.transferstate="WAITING" AND g.validation_status LIMIT %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX " retransfer of 2012 data
-        
-        print sql
-        #sql = """SELECT u.name,u.path,u.queue_id,u.urlpath_id,u.transfertime,u.md5sum  FROM i3filter.urlpath u where u.dataset_id=1871 and transferstate='WAITING'"""
-        #sql = """SELECT * FROM i3filter.urlpath u where u.dataset_id=1871 and transferstate='WAITING'"""
-        #sql = """select u.name, u.path, u.queue_id,u.urlpath_id, u.transfertime,u.md5sum from i3filter.urlpath u
-        #                           where u.dataset_id=%s
-        #                           and u.transferstate="WAITING" limit %s""" %(cfg.get("database_query","dataset_id"),cfg.get("database_query","limit"))
-        #                           #order by r.run_id""")
-        
 
-        # 1870 for urlpath table  1861 for urlpath_test
+            return sList
+
+        cursor = connections["default"].cursor()
+        filter_cursor = connections["filter-db"].cursor()
+
+        # Getting all files that are ready regardless if the runs have been validated
+        sql = """
+            SELECT
+                u.name, u.path, u.queue_id, u.urlpath_id, u.transfertime, u.md5sum, r.run_id
+            FROM
+                i3filter.urlpath u
+            JOIN
+                i3filter.run r
+                    ON r.queue_id = u.queue_id
+            WHERE
+                u.dataset_id=%s
+                    AND r.dataset_id = %s
+                    AND u.transferstate = "WAITING"
+            LIMIT %s
+        """ %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: original query
+
+        # Query information about validated runs
+        dataset_id = cfg.get("database_query","dataset_id")
+
+        # In order to be backwards compatible to older datasets, we need to do check the dataset_id
+        # The new DB was introduced with dataset_id 1915 and previous validation flags have been
+        # copied to the new DB as dataset_id = 0 (it is not easily reproduceable to which dataset
+        # the flag corresponded since there was just a flag for L2 data.
+        if int(dataset_id) < 1915:
+            dataset_id = 0
+
+        validation_sql = """
+            SELECT 
+                run_id
+            FROM
+                i3filter.post_processing
+            WHERE
+                dataset_id = %s AND validated
+        """ % dataset_id
+
+        filter_cursor.execute(validation_sql)
+        validated_runs = filter_cursor.fetchall()
+        validated_runs = [r[0] for r in validated_runs]
+
+        print sql
+
         cursor.execute(sql)        
         dbInfo = cursor.fetchall()
-        burnSampleL2 = [b for b in dbInfo if not b[4]%10 and b[0].find("PFFilt")<0]
-        burnSamplePFFilt = [b for b in dbInfo if not b[4]%10 and b[0].find("PFFilt")>=0]
-        OtherL2 = [b for b in dbInfo if b[4]%10 and b[0].find("PFFilt")<0 and b[0].find("GCD")<0]
-        OtherPFFilt = [b for b in dbInfo if b[4]%10 and b[0].find("PFFilt")>=0]
+
+        # Now we need to filter the not-validated runs
+        dbInfo = [s for s in dbInfo if s[6] in validated_runs]
+
+        burnSampleL2 = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")<0]
+        burnSamplePFFilt = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")>=0]
+        OtherL2 = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")<0 and b[0].find("GCD")<0]
+        OtherPFFilt = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")>=0]
         
         print len(dbInfo)
         #print dbInfo

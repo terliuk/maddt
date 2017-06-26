@@ -21,6 +21,15 @@ DATABASES = {
         'HOST': 'FIXME',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
     },
+    'filter-db': {
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'FIXME',                      # Or path to database file if using sqlite3.
+        # The following settings are not used with sqlite3:
+        'USER': 'FIXME',
+        'PASSWORD': 'FIXME',
+        'HOST': 'FIXME',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    },
     'copyjobs'  : {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME'  : join(MADDT_PATH,'copyjobs/copyjobs.db')
