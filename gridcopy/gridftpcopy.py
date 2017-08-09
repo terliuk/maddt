@@ -164,29 +164,13 @@ def get_files(cfg):
         cursor = connections["default"].cursor()
         filter_cursor = connections["filter-db"].cursor()
 
-        # Getting all files that are ready regardless if the runs have been validated
-        sql = """
-            SELECT
-                u.name, u.path, u.queue_id, u.urlpath_id, u.transfertime, u.md5sum, r.run_id
-            FROM
-                i3filter.urlpath u
-            JOIN
-                i3filter.run r
-                    ON r.queue_id = u.queue_id
-            WHERE
-                u.dataset_id=%s
-                    AND r.dataset_id = %s
-                    AND u.transferstate = "WAITING"
-            LIMIT %s
-        """ %(cfg.get("database_query","dataset_id"),cfg.get("database_query","dataset_id"),cfg.get("database_query","limit")) ### XXX: original query
-
         # Query information about validated runs
         dataset_id = cfg.get("database_query","dataset_id")
 
         # In order to be backwards compatible to older datasets, we need to do check the dataset_id
         # The new DB was introduced with dataset_id 1915 and previous validation flags have been
         # copied to the new DB as dataset_id = 0 (it is not easily reproduceable to which dataset
-        # the flag corresponded since there was just a flag for L2 data.
+        # the flag corresponded since there was just a flag for L2 data).
         if int(dataset_id) < 1915:
             dataset_id = 0
 
@@ -201,7 +185,27 @@ def get_files(cfg):
 
         filter_cursor.execute(validation_sql)
         validated_runs = filter_cursor.fetchall()
-        validated_runs = [r[0] for r in validated_runs]
+        validated_runs = [str(r[0]) for r in validated_runs]
+
+        # Getting all files that are ready
+        sql = """
+            SELECT
+                u.name, u.path, u.queue_id, u.urlpath_id, u.transfertime, u.md5sum, r.run_id
+            FROM
+                i3filter.urlpath u
+            JOIN
+                i3filter.run r
+                    ON r.queue_id = u.queue_id
+            WHERE
+                u.dataset_id=%s
+                    AND r.dataset_id = %s
+                    AND u.transferstate = "WAITING"
+                    AND r.run_id IN (%s)
+            LIMIT %s
+        """ % (cfg.get("database_query", "dataset_id"),
+               cfg.get("database_query", "dataset_id"),
+               ','.join(validated_runs),
+               cfg.get("database_query","limit")) ### XXX: original query
 
         print sql
 
