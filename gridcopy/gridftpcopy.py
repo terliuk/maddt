@@ -212,10 +212,6 @@ def get_files(cfg):
         cursor.execute(sql)        
         dbInfo = cursor.fetchall()
 
-        ## Now we need to filter the not-validated runs
-        #dbInfo = [s for s in dbInfo if s[6] in validated_runs]
-        #
-        
         burnSampleL2 = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")<0]
         burnSamplePFFilt = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")>=0]
         OtherL2 = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")<0]
