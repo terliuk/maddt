@@ -212,16 +212,17 @@ def get_files(cfg):
         cursor.execute(sql)        
         dbInfo = cursor.fetchall()
 
-        # Now we need to filter the not-validated runs
-        dbInfo = [s for s in dbInfo if s[6] in validated_runs]
-
+        ## Now we need to filter the not-validated runs
+        #dbInfo = [s for s in dbInfo if s[6] in validated_runs]
+        #
+        
         burnSampleL2 = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")<0]
         burnSamplePFFilt = [b for b in dbInfo if not b[6]%10 and b[0].find("PFFilt")>=0]
-        OtherL2 = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")<0 and b[0].find("GCD")<0]
+        OtherL2 = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")<0]
+        #OtherL2          = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")<0 and b[0].find("GCD")<0]
         OtherPFFilt = [b for b in dbInfo if b[6]%10 and b[0].find("PFFilt")>=0]
         
         print len(dbInfo)
-        #print dbInfo
         #print len(burnSamplePFFilt)
         #print len(burnSampleL2)
         #print len(OtherPFFilt)
@@ -234,6 +235,7 @@ def get_files(cfg):
         if len(burnSamplePFFilt): Files2Copy.extend(SortnGroup(burnSamplePFFilt))
         if len(OtherPFFilt): Files2Copy.extend(SortnGroup(OtherPFFilt))
         logging.info("Retrieved %i files to copy from database" %len(Files2Copy))
+        #exit()
         #for f in Files2Copy: print f
         return Files2Copy
 
@@ -313,8 +315,11 @@ def get_local_path(dbfile):
     Converte a path in the datawarehouse to a path at DESY
     """
     year = get_year(dbfile)
-    #path_prefix = dbfile.path.replace("file:","/lustre/fs6/group/i3/stoessl/urlpath_test")
-    path_prefix = dbfile.path.replace("file:","/acs/icecube/icecube" + str(year)[2:])
+    #path_prefix = dbfile.path.replace("file:","/lustre/fs6/group/i3/stoessl/urlpath_test") # gsiftp://gridftp.icecube.wisc.edu
+    if "file:" in dbfile.path:
+        path_prefix = dbfile.path.replace("file:","/acs/icecube/icecube" + str(year)[2:])
+    elif "gsiftp://gridftp.icecube.wisc.edu" in dbfile.path:
+        path_prefix = dbfile.path.replace("gsiftp://gridftp.icecube.wisc.edu","/acs/icecube/icecube" + str(year)[2:])
     return path_prefix
 
 def get_local_filename(dbfile):
@@ -326,9 +331,8 @@ def get_local_filename(dbfile):
     return join(path_prefix,dbfile.name)
 
 def get_year(dbfile):
-    
     #FIXME: move the pattern to the configfile
-    year = re.compile(r'.IceCube/(?P<year>\d+)/filtered.')
+    year = re.compile(r'./(?P<year>\d+)/filtered/.')
     year = year.search(dbfile.path)
     return year.groupdict()["year"]
 
